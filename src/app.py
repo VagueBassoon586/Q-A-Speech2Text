@@ -3,6 +3,7 @@ from os.path import dirname, realpath
 from random import shuffle, randint
 from flask import Flask, request, jsonify, send_from_directory, render_template
 from speech import Speech2Txt
+from time import sleep
 import tempfile
 import websockets
 import asyncio
@@ -40,7 +41,7 @@ def answer():
 			transcript = Speech2Txt(tmp_out.name, False)
 
 	# Check answer and send result
-	res = checkAnswer(transcript.lower())
+	res = checkAnswer(transcript)
 	asyncio.run(sendResult("ws://localhost:8765", teams[randint(0, 5)], lstQA[ind][0], res))
 	ind += 1
 	return jsonify({'correct': res, 'transcript': transcript})
@@ -58,7 +59,7 @@ def checkAnswer(input):
 	global lstQA, teams, ind
 	poAns = [a.lower() for a in lstQA[ind][1].split(',')]
 	for ans in poAns:
-		res = bool(search(ans, input.lower()))
+		res = bool(search(ans, input))
 		if res:
 			ind += 1
 			return True
@@ -72,25 +73,25 @@ async def sendResult(ws, team, res, inp):
 
 
 if __name__ == '__main__':
-    # Initialize varible
+	# Initialize varible
 	teams, lstQA = retrieveData()
-	ind = 0
+	ind = 14
 	# Randomize questions
 	shuffle(lstQA)
 	app.run(debug = True)
 
-# 	# User's team input
-# 	team = input("Nhập tên đội: ")
-# 	while (team not in teams):
-# 		teams = input("Vui lòng nhập lại tên đội: ")
-# 	print(f"Câu hỏi của bạn:\n{lstQA[ind][0]}")
-# 	for i in range(5, 0, -1):
-# 		print(f"\r{i}", end = '', flush = True)
-# 		sleep(1)
-# 	print()
-# 	print("Vui lòng đọc trả lời: ")
-# 	inp = speech.Speech2Txt("", True)
-# 	print(f"Câu trả lời của bạn: {inp}")
-# 	res = checkAnswer(inp.lower())
-# 	print(res)
-# 	asyncio.run(sendResult("ws://localhost:8765", team, res))
+	# # For debugging:
+	# team = input("Nhập tên đội: ")
+	# while (team not in teams):
+	# 	teams = input("Vui lòng nhập lại tên đội: ")
+	# print(f"Câu hỏi của bạn:\n{lstQA[ind][0]}")
+	# for i in range(5, 0, -1):
+	# 	print(f"\rTrả lời sau: {i}", end = '', flush = True)
+	# 	sleep(1)
+	# print("\r", end = '', flush = True)
+	# print("Vui lòng đọc trả lời: ")
+	# inp = Speech2Txt("", True)
+	# print(f"Câu trả lời của bạn: {inp}")
+	# res = checkAnswer(inp.lower())
+	# print(res)
+	# asyncio.run(sendResult("ws://localhost:8765", team, res, inp))

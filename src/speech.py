@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+from re import sub
 import os
 import logging
 import azure.cognitiveservices.speech as speechsdk
@@ -35,7 +36,7 @@ def Speech2Txt(filename: str = "", use_default_microphone: bool = False):
 	else:
 		result = ""
 
-	return result
+	return sub(r'(?<=\d)\s+(?=\d)', '', result.casefold())
 
 
 if __name__ == '__main__':
