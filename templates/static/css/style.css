@@ -1,0 +1,117 @@
+body {
+  background: #f7f9fc;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  max-width: 430px;
+  margin: 40px auto;
+  padding: 32px 16px;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+h1 {
+  text-align: center;
+  color: #222d4a;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 32px;
+}
+
+#question {
+  background: #e7edfa;
+  color: #2a324d;
+  padding: 18px 16px;
+  border-radius: 10px;
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 6px rgba(34,45,74,0.04);
+}
+
+button {
+  background: #4563e6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 22px;
+  font-size: 1.1rem;
+  margin-right: 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: background 0.18s, box-shadow 0.18s;
+  box-shadow: 0 1px 4px rgba(34,45,74,0.07);
+}
+
+button:disabled {
+  background: #bbb;
+  cursor: not-allowed;
+}
+
+button:hover:not(:disabled) {
+  background: #293a7a;
+}
+
+audio {
+  display: block;
+  margin: 18px 0 10px 0;
+  width: 100%;
+  outline: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(100,100,100,0.04);
+}
+
+#downloadLink {
+  display: none;
+  background: #22c55e;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 11px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(40, 100, 60, 0.06);
+  margin-bottom: 16px;
+  margin-top: 4px;
+  transition: background 0.18s, box-shadow 0.18s;
+}
+
+#downloadLink:hover {
+  background: #198946;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(40, 100, 60, 0.11);
+}
+
+#result {
+  margin-top: 18px;
+  padding: 15px 14px;
+  background: #f6fbeb;
+  border: 1.5px solid #c4e4af;
+  color: #235634;
+  border-radius: 9px;
+  font-weight: 500;
+  min-height: 32px;
+  font-size: 1.07rem;
+  word-break: break-word;
+}
+
+@media (max-width: 600px) {
+  body {
+	max-width: 98vw;
+	padding: 10vw 2vw;
+  }
+  #question {
+	font-size: 1.05rem;
+	padding: 10px;
+  }
+  button {
+	font-size: 1rem;
+	padding: 10px 14px;
+  }
+  #downloadLink {
+	padding: 9px 16px;
+	font-size: 0.96rem;
+  }
+  #result {
+	font-size: 0.96rem;
+	padding: 10px;
+  }
+}

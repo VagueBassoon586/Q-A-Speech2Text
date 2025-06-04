@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Quiz Audio Web App</title>
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+	<h1>Quiz</h1>
+	<div id="question">Loading question...</div>
+	<button id="recordBtn">Start Recording</button>
+	<button id="stopBtn" disabled>Stop Recording</button>
+	<audio id="audioPlayback" controls style="display:none;"></audio>
+	<a id="downloadLink" download="your_recording.wav">Download your audio</a>
+	<div id="result"></div>
+
+	<script src="{{ url_for('static', filename='js/recorder.js') }}"></script>
+	<script>
+	let recorder, audioStream;
+
+	// Load a question from the backend when page loads
+	async function getQuestion() {
+		const res = await fetch('/question');
+		const data = await res.json();
+		document.getElementById('question').innerText = data.question;
+	}
+	getQuestion();
+
+	// Start recording
+	document.getElementById('recordBtn').onclick = async function() {
+		audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+		const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+		const input = audioContext.createMediaStreamSource(audioStream);
+
+		recorder = new Recorder(input, { numChannels: 1 });
+		recorder.record();
+
+		document.getElementById('recordBtn').disabled = true;
+		document.getElementById('stopBtn').disabled = false;
+		document.getElementById('result').innerText = '';
+		document.getElementById('audioPlayback').style.display = 'none';
+		document.getElementById('downloadLink').style.display = 'none';
+	};
+
+	// Stop recording, send to backend, and show download
+	document.getElementById('stopBtn').onclick = function() {
+		recorder.stop();
+		audioStream.getAudioTracks()[0].stop();
+
+		recorder.exportWAV(function(blob) {
+			const audioUrl = URL.createObjectURL(blob);
+			const audioPlayback = document.getElementById('audioPlayback');
+			audioPlayback.src = audioUrl;
+			audioPlayback.style.display = 'block';
+
+			// Enable download link for .wav
+			const downloadLink = document.getElementById('downloadLink');
+			downloadLink.href = audioUrl;
+			downloadLink.style.display = 'inline-block';
+
+			const formData = new FormData();
+			formData.append('audio', blob, 'audio.wav');
+
+			fetch('/answer', { method: 'POST', body: formData })
+				.then(r => r.json())
+				.then(data => {
+					document.getElementById('result').innerText =
+						"Result: " + (data.correct ? "Correct!" : "Wrong!") +
+						"\nYou said: " + data.transcript;
+					getQuestion();
+				});
+		});
+
+		document.getElementById('recordBtn').disabled = false;
+		document.getElementById('stopBtn').disabled = true;
+	};
+	</script>
+</body>
+</html>
