@@ -1,4 +1,6 @@
 from re import search
+from dotenv import load_dotenv
+from os import getenv
 from os.path import dirname, realpath
 from random import shuffle, randint
 from flask import Flask, request, jsonify, send_from_directory, render_template
@@ -42,7 +44,9 @@ def answer():
 
 	# Check answer and send result
 	res = checkAnswer(transcript)
-	asyncio.run(sendResult("ws://localhost:8765", teams[randint(0, 5)], lstQA[ind][0], res))
+
+	load_dotenv()
+	asyncio.run(sendResult(getenv("NGROK_URL"), teams[randint(0, 5)], lstQA[ind][0], res))
 	ind += 1
 	return jsonify({'correct': res, 'transcript': transcript})
 
@@ -75,7 +79,7 @@ async def sendResult(ws, team, res, inp):
 if __name__ == '__main__':
 	# Initialize varible
 	teams, lstQA = retrieveData()
-	ind = 14
+	ind = 0
 	# Randomize questions
 	shuffle(lstQA)
 	app.run(debug = True)

@@ -1,14 +1,14 @@
 from dotenv import load_dotenv
 from re import sub
-import os
+from os import getenv
 import logging
 import azure.cognitiveservices.speech as speechsdk
 
 # === Return audio input (file / microphone) to text ===
 def Speech2Txt(filename: str = "", use_default_microphone: bool = False):
 	load_dotenv()
-	SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
-	SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
+	SPEECH_REGION = getenv("AZURE_SPEECH_REGION")
+	SPEECH_KEY = getenv("AZURE_SPEECH_KEY")
 	speech_config = speechsdk.SpeechConfig(subscription = SPEECH_KEY, region = SPEECH_REGION)
 	speech_config.set_property(speechsdk.PropertyId.SpeechServiceConnection_EndSilenceTimeoutMs, "15000")
 	auto_detect_source_language_config = speechsdk.languageconfig.AutoDetectSourceLanguageConfig(languages=["vi-VN", "en-US"])
