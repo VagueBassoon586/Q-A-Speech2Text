@@ -44,8 +44,7 @@ def answer():
 
 	# Check answer and send result
 	res = checkAnswer(transcript)
-	load_dotenv()
-	asyncio.run(sendResult(getenv("NGROK_URL"), teams[randint(0, 5)], lstQA[ind][0], res))
+	asyncio.run(sendResult(teams[randint(0, 5)], lstQA[ind][0], res))
 	ind += 1
 	return jsonify({'correct': res, 'transcript': transcript})
 
@@ -69,9 +68,10 @@ def checkAnswer(input):
 	return False
 
 # === Step 3: Send result to Robot ===
-async def sendResult(ws, team, res, inp):
+async def sendResult(team, res, inp):
+	load_dotenv()
 	result = f"{team}_{lstQA[ind][0]}_{inp}_{res}" # type: ignore
-	async with websockets.connect(ws) as websocket:
+	async with websockets.connect(str(getenv("NGROK_URL"))) as websocket:
 		await websocket.send(result)
 
 
