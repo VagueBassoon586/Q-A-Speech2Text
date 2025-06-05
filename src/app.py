@@ -44,7 +44,7 @@ def answer():
 
 	# Check answer and send result
 	res = checkAnswer(transcript)
-	asyncio.run(sendResult(teams[randint(0, 5)], lstQA[ind][0], res))
+	asyncio.run(sendResult(teams[randint(0, 5)], res, transcript))
 	ind += 1
 	return jsonify({'correct': res, 'transcript': transcript})
 
