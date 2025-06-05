@@ -8,17 +8,23 @@
 <body>
 	<h1>Quiz</h1>
 	<div id="question">Loading question...</div>
-	<button id="recordBtn">Start Recording</button>
-	<button id="stopBtn" disabled>Stop Recording</button>
-	<audio id="audioPlayback" controls style="display:none;"></audio>
-	<a id="downloadLink" download="your_recording.wav">Download your audio</a>
+	
+	<div id="recorder-container">
+		<div id="wave-container">
+			<canvas id="audio-wave"></canvas>
+		</div>
+		<button id="recordCircleBtn">
+			<span id="micIcon">&#127908;</span> <!-- Microphone icon Unicode -->
+		</button>
+	</div>
+
 	<div id="result"></div>
 
 	<script src="{{ url_for('static', filename='js/recorder.js') }}"></script>
 	<script>
-	let recorder, audioStream;
+	let recorder, audioStream, audioContext, analyser, dataArray, animationId;
+	let isRecording = false;
 
-	// Load a question from the backend when page loads
 	async function getQuestion() {
 		const res = await fetch('/question');
 		const data = await res.json();
@@ -26,53 +32,79 @@
 	}
 	getQuestion();
 
-	// Start recording
-	document.getElementById('recordBtn').onclick = async function() {
-		audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-		const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-		const input = audioContext.createMediaStreamSource(audioStream);
+	const recordBtn = document.getElementById('recordCircleBtn');
+	const waveCanvas = document.getElementById('audio-wave');
+	const waveCtx = waveCanvas.getContext('2d');
+	waveCanvas.width = 220;
+	waveCanvas.height = 60;
 
-		recorder = new Recorder(input, { numChannels: 1 });
-		recorder.record();
+	function drawWave() {
+		if (!isRecording || !analyser) return;
+		analyser.getByteTimeDomainData(dataArray);
+		waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
 
-		document.getElementById('recordBtn').disabled = true;
-		document.getElementById('stopBtn').disabled = false;
-		document.getElementById('result').innerText = '';
-		document.getElementById('audioPlayback').style.display = 'none';
-		document.getElementById('downloadLink').style.display = 'none';
-	};
+		waveCtx.beginPath();
+		const sliceWidth = waveCanvas.width * 1.0 / dataArray.length;
+		let x = 0;
+		for (let i = 0; i < dataArray.length; i++) {
+			let v = dataArray[i] / 128.0;
+			let y = v * waveCanvas.height / 2;
+			if (i === 0) {
+				waveCtx.moveTo(x, y);
+			} else {
+				waveCtx.lineTo(x, y);
+			}
+			x += sliceWidth;
+		}
+		waveCtx.lineTo(waveCanvas.width, waveCanvas.height / 2);
+		waveCtx.strokeStyle = '#3b82f6';
+		waveCtx.lineWidth = 3;
+		waveCtx.stroke();
 
-	// Stop recording, send to backend, and show download
-	document.getElementById('stopBtn').onclick = function() {
-		recorder.stop();
-		audioStream.getAudioTracks()[0].stop();
+		animationId = requestAnimationFrame(drawWave);
+	}
 
-		recorder.exportWAV(function(blob) {
-			const audioUrl = URL.createObjectURL(blob);
-			const audioPlayback = document.getElementById('audioPlayback');
-			audioPlayback.src = audioUrl;
-			audioPlayback.style.display = 'block';
+	recordBtn.onclick = async function() {
+		if (!isRecording) {
+			audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			audioContext = new (window.AudioContext || window.webkitAudioContext)();
+			const input = audioContext.createMediaStreamSource(audioStream);
+			analyser = audioContext.createAnalyser();
+			analyser.fftSize = 2048;
+			dataArray = new Uint8Array(analyser.fftSize);
 
-			// Enable download link for .wav
-			const downloadLink = document.getElementById('downloadLink');
-			downloadLink.href = audioUrl;
-			downloadLink.style.display = 'inline-block';
+			input.connect(analyser);
 
-			const formData = new FormData();
-			formData.append('audio', blob, 'audio.wav');
+			recorder = new Recorder(input, { numChannels: 1 });
+			recorder.record();
 
-			fetch('/answer', { method: 'POST', body: formData })
-				.then(r => r.json())
-				.then(data => {
-					document.getElementById('result').innerText =
-						"Result: " + (data.correct ? "Correct!" : "Wrong!") +
-						"\nYou said: " + data.transcript;
-					getQuestion();
-				});
-		});
+			isRecording = true;
+			recordBtn.classList.add('recording');
+			drawWave();
+			document.getElementById('result').innerText = '';
+		} else {
+			recorder.stop();
+			audioStream.getAudioTracks()[0].stop();
+			audioContext.close();
+			cancelAnimationFrame(animationId);
 
-		document.getElementById('recordBtn').disabled = false;
-		document.getElementById('stopBtn').disabled = true;
+			recorder.exportWAV(function(blob) {
+				const formData = new FormData();
+				formData.append('audio', blob, 'audio.wav');
+				fetch('/answer', { method: 'POST', body: formData })
+					.then(r => r.json())
+					.then(data => {
+						document.getElementById('result').innerText =
+							"Result: " + (data.correct ? "Correct!" : "Wrong!") +
+							"\nYou said: " + data.transcript;
+						getQuestion();
+					});
+			});
+
+			isRecording = false;
+			recordBtn.classList.remove('recording');
+			waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+		}
 	};
 	</script>
 </body>
