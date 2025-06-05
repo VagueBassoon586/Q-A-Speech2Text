@@ -5,7 +5,7 @@ from os.path import dirname, realpath
 from random import shuffle, randint
 from flask import Flask, request, jsonify, send_from_directory, render_template
 from speech import Speech2Txt
-from time import sleep
+# from time import sleep
 import tempfile
 import websockets
 import asyncio
@@ -44,7 +44,6 @@ def answer():
 
 	# Check answer and send result
 	res = checkAnswer(transcript)
-
 	load_dotenv()
 	asyncio.run(sendResult(getenv("NGROK_URL"), teams[randint(0, 5)], lstQA[ind][0], res))
 	ind += 1
