@@ -1,33 +1,89 @@
-#recorder-container {
+body {
+	background: #eaf0fa;
+	font-family: 'Segoe UI', Arial, sans-serif;
+	margin: 0;
+	min-height: 100vh;
+}
+
+.quiz-vertical-box {
+	max-width: 400px;
+	margin: 48px auto 0 auto;
+	padding: 36px 20px 32px 20px;
+	background: #fff;
+	border-radius: 36px;
+	box-shadow: 0 6px 36px rgba(70, 120, 190, 0.10);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.quiz-question {
+	font-size: 1.25rem;
+	font-weight: 600;
+	margin-bottom: 28px;
+	text-align: center;
+	color: #23274d;
+}
+
+.quiz-result-box {
+	min-width: 260px;
+	min-height: 56px;
+	background: linear-gradient(90deg, #4ade80 0%, #2dd4bf 100%);
+	color: #163a23;
+	border-radius: 32px;
+	box-shadow: 0 2px 12px rgba(30, 170, 90, 0.08);
+	padding: 18px 22px;
+	margin-bottom: 38px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	margin: 28px 0 16px 0;
+	font-size: 1.12rem;
+	gap: 4px;
+	transition: background 0.2s;
 }
 
-#wave-container {
-	height: 62px;
-	width: 240px;
-	margin-bottom: 28px;
-	background: transparent;
+#answer-status {
+	font-weight: 700;
+	font-size: 1.09rem;
 }
 
-#audio-wave {
-	display: block;
-	background: #eef4fb;
-	border-radius: 28px;
-	box-shadow: 0 2px 8px rgba(60,100,160,0.07);
-	width: 220px;
-	height: 60px;
+#recorder-area {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+}
+
+.mic-visualizer {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 130px;
+	height: 130px;
 	margin: 0 auto;
+}
+
+.mic-pulse {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: 130px;
+	height: 130px;
+	border-radius: 50%;
+	background: rgba(59, 130, 246, 0.23);
+	z-index: 1;
+	transition: width 0.16s cubic-bezier(.4,0,.2,1), height 0.16s cubic-bezier(.4,0,.2,1), opacity 0.16s;
+	pointer-events: none;
 }
 
 #recordCircleBtn {
 	width: 100px;
 	height: 100px;
 	border-radius: 50%;
-	background: linear-gradient(145deg, #4563e6, #5f8bfa);
+	background: linear-gradient(145deg, #2563eb, #3b82f6);
 	border: none;
 	display: flex;
 	align-items: center;
@@ -38,6 +94,8 @@
 	cursor: pointer;
 	outline: none;
 	transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
+	position: relative;
+	z-index: 2;
 }
 
 #recordCircleBtn.recording {
@@ -51,18 +109,25 @@
 }
 
 @media (max-width: 600px) {
-	#recorder-container {
-		margin: 16px 0 6px 0;
+	.quiz-vertical-box {
+		padding: 16px 3vw;
+		max-width: 98vw;
 	}
-	#wave-container {
-		width: 95vw;
-	}
-	#audio-wave {
-		width: 92vw;
+	.quiz-result-box {
+		min-width: 60vw;
+		padding: 11px 2vw;
 	}
 	#recordCircleBtn {
 		width: 80px;
 		height: 80px;
 		font-size: 1.7rem;
+	}
+	.mic-visualizer {
+		width: 100px;
+		height: 100px;
+	}
+	.mic-pulse {
+		width: 100px;
+		height: 100px;
 	}
 }

@@ -29,7 +29,7 @@ def question():
 
 @app.route('/answer', methods=['POST'])
 def answer():
-	global ind, lstQA
+	global lstQA
 	if ind >= len(lstQA):
 		return jsonify({'correct': False, 'transcript': '', 'message': 'No more questions.'})
 	f = request.files['audio']
@@ -45,7 +45,6 @@ def answer():
 	# Check answer and send result
 	res = checkAnswer(transcript)
 	asyncio.run(sendResult(teams[randint(0, 5)], res, transcript))
-	ind += 1
 	return jsonify({'correct': res, 'transcript': transcript})
 
 # === Step 1: Load Teams, Questions and Answers from Server ===
@@ -63,14 +62,15 @@ def checkAnswer(input):
 	for ans in poAns:
 		res = bool(search(ans, input))
 		if res:
-			ind += 1
 			return True
 	return False
 
 # === Step 3: Send result to Robot ===
 async def sendResult(team, res, inp):
+	global ind
 	load_dotenv()
-	result = f"{team}_{lstQA[ind][0]}_{inp}_{res}" # type: ignore
+	result = f"{team}_{lstQA[ind][0]}_{res}_{inp}" # type: ignore
+	ind += 1
 	async with websockets.connect(str(getenv("NGROK_URL"))) as websocket:
 		await websocket.send(result)
 

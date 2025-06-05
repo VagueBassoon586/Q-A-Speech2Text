@@ -6,20 +6,22 @@
 	<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-	<h1>Quiz</h1>
-	<div id="question">Loading question...</div>
-	
-	<div id="recorder-container">
-		<div id="wave-container">
-			<canvas id="audio-wave"></canvas>
+	<div class="quiz-vertical-box">
+		<div id="question" class="quiz-question">Loading question...</div>
+		
+		<div id="result-box" class="quiz-result-box">
+			<span id="user-answer">Your answer will appear here</span>
+			<span id="answer-status"></span>
 		</div>
-		<button id="recordCircleBtn">
-			<span id="micIcon">&#127908;</span> <!-- Microphone icon Unicode -->
-		</button>
+		
+		<div id="recorder-area">
+			<div class="mic-visualizer" id="mic-visualizer">
+				<button id="recordCircleBtn">
+					<span id="micIcon">&#127908;</span>
+				</button>
+			</div>
+		</div>
 	</div>
-
-	<div id="result"></div>
-
 	<script src="{{ url_for('static', filename='js/recorder.js') }}"></script>
 	<script>
 	let recorder, audioStream, audioContext, analyser, dataArray, animationId;
@@ -33,36 +35,57 @@
 	getQuestion();
 
 	const recordBtn = document.getElementById('recordCircleBtn');
-	const waveCanvas = document.getElementById('audio-wave');
-	const waveCtx = waveCanvas.getContext('2d');
-	waveCanvas.width = 220;
-	waveCanvas.height = 60;
+	const micVisualizer = document.getElementById('mic-visualizer');
+	let micPulse = null;
 
-	function drawWave() {
+	function updatePulse(volume) {
+		if (!micPulse) {
+			micPulse = document.createElement('div');
+			micPulse.className = 'mic-pulse';
+			micVisualizer.appendChild(micPulse);
+		}
+		const minSize = 100;
+		const maxSize = 350;
+		const size = minSize + (maxSize - minSize) * volume;
+		micPulse.style.width = micPulse.style.height = `${size}px`;
+		micPulse.style.opacity = 0.6 + volume * 0.6;
+	}
+	function removePulse() {
+		if (micPulse) {
+			micPulse.remove();
+			micPulse = null;
+		}
+	}
+
+	let displayVolume = 0; // Add this near the top, global in your script
+
+	function drawPulse() {
 		if (!isRecording || !analyser) return;
 		analyser.getByteTimeDomainData(dataArray);
-		waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
-
-		waveCtx.beginPath();
-		const sliceWidth = waveCanvas.width * 1.0 / dataArray.length;
-		let x = 0;
+		let sumSquares = 0;
 		for (let i = 0; i < dataArray.length; i++) {
-			let v = dataArray[i] / 128.0;
-			let y = v * waveCanvas.height / 2;
-			if (i === 0) {
-				waveCtx.moveTo(x, y);
-			} else {
-				waveCtx.lineTo(x, y);
-			}
-			x += sliceWidth;
+			let n = (dataArray[i] - 128) / 128;
+			sumSquares += n * n;
 		}
-		waveCtx.lineTo(waveCanvas.width, waveCanvas.height / 2);
-		waveCtx.strokeStyle = '#3b82f6';
-		waveCtx.lineWidth = 3;
-		waveCtx.stroke();
+		let instantVolume = Math.sqrt(sumSquares / dataArray.length);
+		instantVolume = Math.min(instantVolume * 7, 1);
 
-		animationId = requestAnimationFrame(drawWave);
+		// Peak hold with fast decay (adjust 0.35 for faster or slower shrink)
+		let changeRate = 0.35 * 4; // 1.4 for 4x speed!
+
+		if (Math.abs(instantVolume - displayVolume) < changeRate) {
+			displayVolume = instantVolume; // Snap to value if close enough
+		} else if (instantVolume > displayVolume) {
+			displayVolume = Math.min(instantVolume, displayVolume + changeRate);
+		} else {
+			displayVolume = Math.max(0, displayVolume - changeRate);
+		}
+
+		updatePulse(displayVolume);
+		animationId = requestAnimationFrame(drawPulse);
 	}
+
+
 
 	recordBtn.onclick = async function() {
 		if (!isRecording) {
@@ -80,13 +103,15 @@
 
 			isRecording = true;
 			recordBtn.classList.add('recording');
-			drawWave();
-			document.getElementById('result').innerText = '';
+			drawPulse();
+			document.getElementById('user-answer').innerText = "";
+			document.getElementById('answer-status').innerText = "";
 		} else {
 			recorder.stop();
 			audioStream.getAudioTracks()[0].stop();
 			audioContext.close();
 			cancelAnimationFrame(animationId);
+			removePulse();
 
 			recorder.exportWAV(function(blob) {
 				const formData = new FormData();
@@ -94,16 +119,14 @@
 				fetch('/answer', { method: 'POST', body: formData })
 					.then(r => r.json())
 					.then(data => {
-						document.getElementById('result').innerText =
-							"Result: " + (data.correct ? "Correct!" : "Wrong!") +
-							"\nYou said: " + data.transcript;
+						document.getElementById('user-answer').innerText = data.transcript || "No speech detected";
+						document.getElementById('answer-status').innerText = data.correct ? "✅ Correct!" : "❌ Incorrect";
 						getQuestion();
 					});
 			});
 
 			isRecording = false;
 			recordBtn.classList.remove('recording');
-			waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
 		}
 	};
 	</script>
