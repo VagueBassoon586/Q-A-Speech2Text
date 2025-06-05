@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from re import sub
 from os import getenv
+from time import sleep
 import logging
 import azure.cognitiveservices.speech as speechsdk
 
@@ -40,4 +41,9 @@ def Speech2Txt(filename: str = "", use_default_microphone: bool = False):
 
 
 if __name__ == '__main__':
-    print(Speech2Txt("", True))
+	for i in range(5, 0, -1):
+		print(f"\rMic sẽ bật sau: {i}", end = '', flush = True)
+		sleep(1)
+	print("\r", end = '', flush = True)
+	print("Mic đã được bật! ")
+	print(Speech2Txt("", True))
