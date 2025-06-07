@@ -1,15 +1,14 @@
 from re import search
 from dotenv import load_dotenv
 from os import getenv
-from os.path import dirname, realpath
-from random import shuffle, randint
-from flask import Flask, request, jsonify, send_from_directory, render_template
+from flask import Flask, request, jsonify, render_template
 from speech import Speech2Txt
 # from time import sleep
 import tempfile
 import websockets
 import asyncio
 import ffmpeg
+import threading
 
 app = Flask(__name__, template_folder = "../templates", static_folder = "../templates/static")
 
@@ -21,16 +20,14 @@ def index():
 # Handle event when all questions have been asked
 @app.route('/question')
 def question():
-	global lstQA, ind
-	if ind >= len(lstQA):
+	global Q, A
+	if Q == "" or A == "":
 		return jsonify({'question': "No more questions!"})
-	q = lstQA[ind][0]
-	return jsonify({'question': q})
+	return jsonify({'question': Q})
 
 @app.route('/answer', methods=['POST'])
 def answer():
-	global lstQA
-	if ind >= len(lstQA):
+	if Q == "" or A == "":
 		return jsonify({'correct': False, 'transcript': '', 'message': 'No more questions.'})
 	f = request.files['audio']
 
@@ -44,22 +41,22 @@ def answer():
 
 	# Check answer and send result
 	res = checkAnswer(transcript)
-	asyncio.run(sendResult(teams[randint(0, 5)], res, transcript))
+	asyncio.run(sendResult(res, transcript))
 	return jsonify({'correct': res, 'transcript': transcript})
 
 # === Step 1: Load Teams, Questions and Answers from Server ===
-def retrieveData():
-	global lstQA, teams
-	path = dirname(realpath(__file__)).replace('src', 'data')
-	lstQA = [[q.strip(), a.strip()] for q, a in zip(open(f"{path}/Questions.in", "r", encoding="utf-8").readlines(), open(f"{path}/Answers.in", "r", encoding="utf-8").readlines())]
-	teams = [t.strip() for t in open(f"{path}/Teams.in", "r", encoding = "utf-8").readlines()]
-	return teams, lstQA
-
+async def retrieveData():
+	load_dotenv()
+	async with websockets.connect(str(getenv("NGROK_URL"))) as websocket:
+		result = (await websocket.recv()).split("_") # type: ignore
+		global Q, A
+		Q, A = result[0], result[1]
+		print(Q, A)
 
 # === Step 2: Check for right and wront answers ===
 def checkAnswer(input):
-	global lstQA, teams, ind
-	poAns = [a.lower() for a in lstQA[ind][1].split(',')]
+	global A
+	poAns = [a.lower() for a in A.split(',')] # type: ignore
 	for ans in poAns:
 		res = bool(search(ans, input))
 		if res:
@@ -67,22 +64,19 @@ def checkAnswer(input):
 	return False
 
 # === Step 3: Send result to Robot ===
-async def sendResult(team, res, inp):
-	global ind
+async def sendResult(res, inp):
 	load_dotenv()
-	result = f"{team}_{lstQA[ind][0]}_{res}_{inp}" # type: ignore
-	ind += 1
+	result = f"{Q}_{res}_{inp}" # type: ignore
 	async with websockets.connect(str(getenv("NGROK_URL"))) as websocket:
 		await websocket.send(result)
 
 
 if __name__ == '__main__':
 	# Initialize varible
-	teams, lstQA = retrieveData()
-	ind = 0
-	# Randomize questions
-	shuffle(lstQA)
-	app.run(debug = True)
+	Q, A = "", ""
+	t = threading.Thread(target = retrieveData, daemon=True)
+	t.start()
+	app.run(debug=True)
 
 	# # For debugging:
 	# team = input("Nhập tên đội: ")
@@ -98,4 +92,4 @@ if __name__ == '__main__':
 	# print(f"Câu trả lời của bạn: {inp}")
 	# res = checkAnswer(inp.lower())
 	# print(res)
-	# asyncio.run(sendResult("ws://localhost:8765", team, res, inp))
+	# asyncio.run(sendResult("wss://informed-legally-weasel.ngrok-free.app", team, res, inp))
